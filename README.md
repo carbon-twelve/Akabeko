@@ -1,4 +1,4 @@
 Akabeko
 =======
 
-An XML-FO formatter
+An XSL-FO formatter
