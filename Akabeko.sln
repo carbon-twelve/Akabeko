@@ -1,9 +1,11 @@
 ﻿
 Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio 2013
-VisualStudioVersion = 12.0.21005.1
+VisualStudioVersion = 12.0.31101.0
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{F2A71F9B-5D33-465A-A702-920D77279786}") = "Akabeko", "Akabeko\Akabeko.fsproj", "{03BF82F4-6F48-4D5F-865B-86D067B950F0}"
+EndProject
+Project("{F2A71F9B-5D33-465A-A702-920D77279786}") = "AkabekoTest", "AkabekoTest\AkabekoTest.fsproj", "{AC656A64-1F45-4583-AFB6-37E3052FBF66}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -15,6 +17,10 @@ Global
 		{03BF82F4-6F48-4D5F-865B-86D067B950F0}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{03BF82F4-6F48-4D5F-865B-86D067B950F0}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{03BF82F4-6F48-4D5F-865B-86D067B950F0}.Release|Any CPU.Build.0 = Release|Any CPU
+		{AC656A64-1F45-4583-AFB6-37E3052FBF66}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{AC656A64-1F45-4583-AFB6-37E3052FBF66}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{AC656A64-1F45-4583-AFB6-37E3052FBF66}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{AC656A64-1F45-4583-AFB6-37E3052FBF66}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
