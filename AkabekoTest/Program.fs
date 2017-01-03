@@ -1,7 +1,10 @@
-﻿open System.IO
+﻿module AkabekoTest
 
-type Main() =
-    member this.TypeSet(xslFo: string): string =
+open Persimmon
+open UseTestNameByReflection
+
+let ``TypeSet outputs an empty PDF`` = test {
+    let expected =
         "%PDF-1.2\n" +
         // catalog
         "1 0 obj\n" +
@@ -45,12 +48,8 @@ type Main() =
         "235\n" +
         "%%EOF\n"
 
+    let main = Main.Main()
+    let actual = main.TypeSet("")
 
-    member this.WriteToPdf(fileName: string, contents: string): unit =
-        File.WriteAllText(System.Environment.CurrentDirectory + Path.DirectorySeparatorChar.ToString() + fileName, contents)
-
-[<EntryPointAttribute>]
-let main (args: string []) =
-    let main = new Main()
-    main.WriteToPdf("test.pdf", main.TypeSet(""))
-    0
+    do! assertEquals expected actual
+}
