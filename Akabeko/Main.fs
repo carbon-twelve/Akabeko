@@ -51,6 +51,8 @@ type Main() =
 
 [<EntryPointAttribute>]
 let main (args: string []) =
+    assert (args.Length > 0)
+    let xslFo = File.ReadAllText(args.[0])
     let main = new Main()
-    main.WriteToPdf("test.pdf", main.TypeSet(""))
+    main.WriteToPdf("test.pdf", main.TypeSet(xslFo))
     0
