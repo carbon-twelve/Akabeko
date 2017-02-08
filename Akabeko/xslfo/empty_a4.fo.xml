@@ -1,0 +1,11 @@
+﻿<?xml version="1.0" encoding="UTF-8"?>
+<fo:root xmlns:fo="http://www.w3.org/1999/XSL/Format">
+  <fo:layout-master-set>
+    <fo:simple-page-master page-height="297.0mm" page-width="210.0mm" master-name="PageMaster">
+    </fo:simple-page-master>
+  </fo:layout-master-set>
+  <fo:page-sequence master-reference="PageMaster">
+    <fo:flow flow-name="xsl-region-body">
+    </fo:flow>
+  </fo:page-sequence>
+</fo:root>
