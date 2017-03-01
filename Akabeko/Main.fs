@@ -8,6 +8,7 @@ open XslFo
 open Microsoft.FSharp.Data.UnitSystems.SI.UnitNames
 open Microsoft.FSharp.Data.UnitSystems.SI.UnitSymbols
 open FParsec
+open System.Collections.Generic
 
 [<Measure>]
 type point
@@ -24,7 +25,7 @@ type Main() =
 
     let convertLength (input: float<m>): float<point> = input * 2834.6472<point/m>
 
-    member this.TypeSet(xslFoStream: Stream): string =
+    member this.TypeSet(xslFoStream: System.IO.Stream): string =
         let xslFo = XDocument.Load(xslFoStream)
         let foNamespace = XNamespace.Get("http://www.w3.org/1999/XSL/Format")
         let root = xslFo.Element(foNamespace + "root")
@@ -37,20 +38,40 @@ type Main() =
                     (masterName, simplePageMaster)
                 end
             |> Map.ofSeq
-        let pageBuilder = PageBuilder(IndirectReferenceGenerator())
+        let indirectReferenceGenerator = IndirectReferenceGenerator()
+        let fontIndirectReference = indirectReferenceGenerator.GenerateNext()
+        let procSetIndirectReference = indirectReferenceGenerator.GenerateNext()
+        let pageBuilder = PageBuilder(indirectReferenceGenerator)
+        let objects = List<Indirect>()
         for pageSequence in root.Elements(foNamespace + "page-sequence") do
             let masterReference = pageSequence.Attribute(XName.Get("master-reference")).Value
             let pageMaster = Map.find masterReference pageMasterMap
             let pageHeight = parseLength (pageMaster.Attribute(XName.Get("page-height")).Value)
             let pageWidth = parseLength (pageMaster.Attribute(XName.Get("page-width")).Value)
-            let emptyPage = {
-                resources = Dictionary(Map.empty);
-                mediaBox = Array([Integer(0); Integer(0); Integer((int) (convertLength pageWidth)); Integer((int) (convertLength pageHeight))])
+            let contentsIndirectReference = indirectReferenceGenerator.GenerateNext()
+            let contents = Indirect(contentsIndirectReference, Stream("BT /F13 12 Tf 0 0 Td (Hello World) Tj ET"))
+            objects.Add(contents)
+            let page = {
+                resources =
+                    Dictionary(
+                        Map.ofList
+                            [
+                                (Name("Font"), Dictionary(Map.ofList [(Name("F13"), fontIndirectReference :> Object)]) :> Object);
+                                (Name("ProcSet"), procSetIndirectReference :> Object)
+                            ]
+                    );
+                mediaBox = Array([Integer(0); Integer(0); Integer((int) (convertLength pageWidth)); Integer((int) (convertLength pageHeight))]);
+                contents = Some contentsIndirectReference
             }
-            pageBuilder.AddPage(emptyPage)
+            pageBuilder.AddPage(page)
+        let fontResource =
+            let content = Dictionary(Map.ofList [(Name("Type"), Name("Font") :> Object); (Name("Subtype"), Name("Type1") :> Object); (Name("BaseFont"), Name("Helvetica") :> Object)])
+            Indirect(fontIndirectReference, content)
+        let procSet =
+            Indirect(procSetIndirectReference, Array(seq [Name("PDF"); Name("Text")]))
         let writer = new StringWriter()
         let body = pageBuilder.BuildPageTree()
-        let file = File(body, Seq.last body)
+        let file = File(Seq.concat (seq [ seq [fontResource; procSet]; objects :> seq<Indirect>; body]), Seq.last body)
         file.WriteTo(writer)
         writer.ToString()
 
@@ -61,7 +82,7 @@ type Main() =
 let main (args: string []) =
     //assert (args.Length > 0)
     //let xslFo = File.ReadAllText(args.[0])
-    let xslFo = new FileStream(@"..\..\xslfo\analysis.fo.xml", FileMode.Open)
+    let xslFo = new FileStream(@"..\..\xslfo\empty_a4.fo.xml", FileMode.Open)
     let main = new Main()
     main.WriteToPdf("test.pdf", main.TypeSet(xslFo))
     0

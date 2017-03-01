@@ -103,6 +103,16 @@ type Dictionary(map: Map<Name, Object>) =
 
     override this.ToString(): string = this.ToString(0)
 
+type Stream(content: string) =
+    inherit Object()
+
+    let metadata = Dictionary(Map.ofList [(Name("Length"), Integer(content.Length) :> Object)])
+
+    override this.ToString(): string =
+        let builder = StringBuilder()
+        bprintf builder "%O%sstream%s%O%sendstream%s" metadata eol eol content eol eol
+        builder.ToString()
+        
 let createCatalog(rootPageTreeNode: Indirect): Dictionary =
     Dictionary(
         Map.ofList [
@@ -111,7 +121,7 @@ let createCatalog(rootPageTreeNode: Indirect): Dictionary =
         ]
     )
 
-type PageInfo = { resources: Dictionary; mediaBox: Array }
+type PageInfo = { resources: Dictionary; mediaBox: Array; contents: IndirectReference option }
 
 type PageBuilder(indirectReferenceGenerator: IndirectReferenceGenerator) =
 
@@ -145,12 +155,18 @@ type PageBuilder(indirectReferenceGenerator: IndirectReferenceGenerator) =
                 for (p, r) in Seq.zip pages kidsRefs do
                 let content =
                     Dictionary(
-                        Map.ofList [
-                            (Name("Type"), Name("Page") :> Object);
-                            (Name("Parent"), root.IndirectReference :> Object);
-                            (Name("Resources"), p.resources :> Object);
-                            (Name("MediaBox"), p.mediaBox :> Object)
-                        ]
+                        let map =
+                            [
+                                (Name("Type"), Name("Page") :> Object);
+                                (Name("Parent"), root.IndirectReference :> Object);
+                                (Name("Resources"), p.resources :> Object);
+                                (Name("MediaBox"), p.mediaBox :> Object);
+                            ]
+                        let options =
+                            match p.contents with
+                            | Some x -> [(Name("Contents"), x :> Object)]
+                            | None -> []
+                        Map.ofList (List.append map options)
                     )
                 yield Indirect(r, content)
             }
