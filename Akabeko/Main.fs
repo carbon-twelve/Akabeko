@@ -20,7 +20,7 @@ type Main() =
         | Success((value, unitSymbol), _, _) ->
             match unitSymbol with
             | "mm" -> LanguagePrimitives.FloatWithMeasure (value / 1000.)
-            | _ -> LanguagePrimitives.FloatWithMeasure value
+            | _ -> raise (System.NotImplementedException())
         | Failure(errorMsg, _, _) -> failwith "Failed to parse a float"
 
     let convertLength (input: float<m>): float<point> = input * 2834.6472<point/m>
@@ -39,40 +39,33 @@ type Main() =
                 end
             |> Map.ofSeq
         let indirectReferenceGenerator = IndirectReferenceGenerator()
-        let fontIndirectReference = indirectReferenceGenerator.GenerateNext()
-        let procSetIndirectReference = indirectReferenceGenerator.GenerateNext()
-        let pageBuilder = PageBuilder(indirectReferenceGenerator)
-        let objects = List<Indirect>()
+        let pageTreeBuilder = PageTreeBuilder()
+        let pdfBuilder = PdfBuilder(indirectReferenceGenerator)
+        let fontReference = pdfBuilder.AddIndirect(Pdf.helvetica)
+        let procSetReference = pdfBuilder.AddIndirect(Array(seq [Name("PDF"); Name("Text")]))
         for pageSequence in root.Elements(foNamespace + "page-sequence") do
             let masterReference = pageSequence.Attribute(XName.Get("master-reference")).Value
             let pageMaster = Map.find masterReference pageMasterMap
             let pageHeight = parseLength (pageMaster.Attribute(XName.Get("page-height")).Value)
             let pageWidth = parseLength (pageMaster.Attribute(XName.Get("page-width")).Value)
-            let contentsIndirectReference = indirectReferenceGenerator.GenerateNext()
-            let contents = Indirect(contentsIndirectReference, Stream("BT /F13 12 Tf 0 0 Td (Hello World) Tj ET"))
-            objects.Add(contents)
-            let page = {
-                resources =
+            let contentsReference = pdfBuilder.AddIndirect(Stream("BT /F13 12 Tf 0 100 Td (Hello World) Tj ET"))
+            let pageBuilder = PageBuilder()
+            pageBuilder.Resources <-
+                Some(
                     Dictionary(
-                        Map.ofList
-                            [
-                                (Name("Font"), Dictionary(Map.ofList [(Name("F13"), fontIndirectReference :> Object)]) :> Object);
-                                (Name("ProcSet"), procSetIndirectReference :> Object)
-                            ]
-                    );
-                mediaBox = Array([Integer(0); Integer(0); Integer((int) (convertLength pageWidth)); Integer((int) (convertLength pageHeight))]);
-                contents = Some contentsIndirectReference
-            }
-            pageBuilder.AddPage(page)
-        let fontResource =
-            let content = Dictionary(Map.ofList [(Name("Type"), Name("Font") :> Object); (Name("Subtype"), Name("Type1") :> Object); (Name("BaseFont"), Name("Helvetica") :> Object)])
-            Indirect(fontIndirectReference, content)
-        let procSet =
-            Indirect(procSetIndirectReference, Array(seq [Name("PDF"); Name("Text")]))
+                        (Name("Font"), Dictionary((Name("F13"), fontReference.Object)).Object),
+                        (Name("ProcSet"), procSetReference.Object)
+                    )
+                )
+            pageBuilder.MediaBox <- Some(Array([ Integer(0)
+                                                 Integer(0)
+                                                 Integer((int)(convertLength pageWidth))
+                                                 Integer((int)(convertLength pageHeight)) ]))
+            pageBuilder.Contents <- Some contentsReference
+            pageTreeBuilder.AddPageBuilder(pageBuilder)
         let writer = new StringWriter()
-        let body = pageBuilder.BuildPageTree()
-        let file = File(Seq.concat (seq [ seq [fontResource; procSet]; objects :> seq<Indirect>; body]), Seq.last body)
-        file.WriteTo(writer)
+        pageTreeBuilder.BuildPageTree(pdfBuilder)
+        pdfBuilder.BuildPdf(writer)
         writer.ToString()
 
     member this.WriteToPdf(fileName: string, contents: string): unit =
@@ -86,3 +79,4 @@ let main (args: string []) =
     let main = new Main()
     main.WriteToPdf("test.pdf", main.TypeSet(xslFo))
     0
+    
