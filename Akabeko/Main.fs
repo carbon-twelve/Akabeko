@@ -23,6 +23,15 @@ type Main() =
             | _ -> raise (System.NotImplementedException())
         | Failure(errorMsg, _, _) -> failwith "Failed to parse a float"
 
+    let parseFontSize (length: string): int =
+        let parser = pfloat .>>. restOfLine false
+        match CharParsers.run parser length with
+        | Success((value, unitSymbol), _, _) ->
+            match unitSymbol with
+            | "pt" -> int value
+            | _ -> raise (System.NotImplementedException())
+        | Failure(errorMsg, _, _) -> failwith "Failed to parse a float"
+
     let convertLength (input: float<m>): float<point> = input * 2834.6472<point/m>
 
     member this.TypeSet(xslFoStream: System.IO.Stream): string =
@@ -48,7 +57,6 @@ type Main() =
             let pageMaster = Map.find masterReference pageMasterMap
             let pageHeight = parseLength (pageMaster.Attribute(XName.Get("page-height")).Value)
             let pageWidth = parseLength (pageMaster.Attribute(XName.Get("page-width")).Value)
-            let contentsReference = pdfBuilder.AddIndirect(Stream("BT /F13 12 Tf 0 100 Td (Hello World) Tj ET"))
             let pageBuilder = PageBuilder()
             pageBuilder.Resources <-
                 Some(
@@ -61,7 +69,13 @@ type Main() =
                                                  Integer(0)
                                                  Integer((int)(convertLength pageWidth))
                                                  Integer((int)(convertLength pageHeight)) ]))
-            pageBuilder.Contents <- Some contentsReference
+
+            for flow in pageSequence.Elements(foNamespace + "flow") do
+                for block in flow.Elements(foNamespace + "block") do
+                    let fontSize = parseFontSize (block.Attribute(XName.Get("font-size")).Value)
+                    let textObject = sprintf "BT /F13 %d Tf 0 100 Td (%s) Tj ET" fontSize block.Value
+                    let contentsReference = pdfBuilder.AddIndirect(Stream(textObject))
+                    pageBuilder.Contents <- Some contentsReference
             pageTreeBuilder.AddPageBuilder(pageBuilder)
         let writer = new StringWriter()
         pageTreeBuilder.BuildPageTree(pdfBuilder)
@@ -75,8 +89,8 @@ type Main() =
 let main (args: string []) =
     //assert (args.Length > 0)
     //let xslFo = File.ReadAllText(args.[0])
-    let xslFo = new FileStream(@"..\..\xslfo\empty_a4.fo.xml", FileMode.Open)
-    let main = new Main()
+    let xslFo = new FileStream(@"../../xslfo/empty_a4.fo.xml", FileMode.Open)
+    let main = Main()
     main.WriteToPdf("test.pdf", main.TypeSet(xslFo))
     0
     

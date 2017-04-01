@@ -6,6 +6,7 @@
   </fo:layout-master-set>
   <fo:page-sequence master-reference="PageMaster">
     <fo:flow flow-name="xsl-region-body">
+      <fo:block font-family="Helvetica" font-size="10pt">Hello, World!</fo:block>
     </fo:flow>
   </fo:page-sequence>
 </fo:root>

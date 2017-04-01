@@ -49,7 +49,7 @@ let ``TypeSet outputs an empty PDF`` = test {
         "%%EOF\n"
 
     let main = Main.Main()
-    let actual = main.TypeSet("")
+    let actual = main.TypeSet(null)
 
     do! assertEquals expected actual
 }
