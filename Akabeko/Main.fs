@@ -69,12 +69,13 @@ type Main() =
                                                  Integer(0)
                                                  Integer((int)(convertLength pageWidth))
                                                  Integer((int)(convertLength pageHeight)) ]))
-
+            let moveOriginToTopLeft = sprintf "1 0 0 -1 0 %d cm" ((int) (convertLength pageHeight))
             for flow in pageSequence.Elements(foNamespace + "flow") do
                 for block in flow.Elements(foNamespace + "block") do
                     let fontSize = parseFontSize (block.Attribute(XName.Get("font-size")).Value)
-                    let textObject = sprintf "BT /F13 %d Tf 0 100 Td (%s) Tj ET" fontSize block.Value
-                    let contentsReference = pdfBuilder.AddIndirect(Stream(textObject))
+                    let moveOriginToFirstLine = sprintf "1 0 0 1 0 %d cm" fontSize
+                    let textObject = sprintf "BT 1 0 0 -1 0 0 Tm /F13 %d Tf (%s) Tj ET" fontSize block.Value
+                    let contentsReference = pdfBuilder.AddIndirect(Stream(String.concat "\n" [moveOriginToTopLeft; moveOriginToFirstLine; textObject]))
                     pageBuilder.Contents <- Some contentsReference
             pageTreeBuilder.AddPageBuilder(pageBuilder)
         let writer = new StringWriter()
